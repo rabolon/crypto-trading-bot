@@ -6,8 +6,9 @@ const run = () => {
   const config = {
     asset: 'BTC',
     base: 'USDT',
-    allocation: 0.001,
-    spread: 0.2,
+    // allocation: 0.001,
+    allocation: 11,               //en USDT
+    spread: 0.01,
     tickInterval: 60000
   }
   const binanceClient = new ccxt.binance({
@@ -24,20 +25,20 @@ const tick = async (config, binanceClient) => {
   const market = `${asset}/${base}`;
   console.log(`Mercado: ${market}`);
 
-
+  //Busca órdenes abiertas
   const orders = await binanceClient.fetchOpenOrders(market);
   if (!orders.length) console.log('No hay órdenes')
   else {
-    console.log('Ordenes: ', orders);
+    // console.log('Ordenes: ', orders);
     console.log(`Cancela ${orders.length} órdenes abiertas`);
     orders.forEach(order => console.log(`Orden: ${order.id} Mercado: ${order.symbol}`));
-    
-    orders.forEach(async order => {
+    //Cancela órdenes abiertas
+    orders.forEach(async order => { 
         await binanceClient.cancelOrder(order.id, order.symbol);
     });
   };
 
-  
+  // Busca precio de mercado promedio en Gecko
   const results = await Promise.all([
     axios.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'),
     axios.get('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=usd')
@@ -51,9 +52,11 @@ const tick = async (config, binanceClient) => {
   const assetBalance = balances.free[asset];
   const baseBalance = balances.free[base];
   console.log(`Balance asset/base: ${assetBalance}/${baseBalance}`);
-  const sellVolume = assetBalance * allocation;
-  const buyVolume = (baseBalance * allocation) / marketPrice;
+  // const sellVolume = assetBalance * allocation;
+  // const buyVolume = (baseBalance * allocation) / marketPrice;
 
+  const sellVolume = allocation/sellPrice;
+  const buyVolume = allocation/buyPrice;
 
   console.log(`Nuevo tick para ${market}...`);
   console.log(`Orden limite de venta por ${sellVolume} @ ${sellPrice}, Notional value = ${sellVolume*sellPrice}`);
@@ -62,7 +65,7 @@ const tick = async (config, binanceClient) => {
   console.log(`Orden limite de compra por ${buyVolume} @ ${buyPrice}, Notional value = ${buyVolume*buyPrice}`);
   await binanceClient.createLimitBuyOrder(market, buyVolume, buyPrice);
 
-  process.exit(0);
+  // process.exit(0);
 
 };
 
